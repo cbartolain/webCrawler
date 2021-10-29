@@ -8,25 +8,17 @@ namespace CoderByteTest
 {
     class Program
     {
+        public static List<string> processedLinks;
         static async Task Main(string[] args)
         {
 
             var baseUrl = "https://therecount.github.io/interview-materials/project-a";
-            var content = await GetContent(baseUrl + "/1.html");
-
-            //Find any phone numbers and put in list
+            var link = baseUrl + "/1.html";
             List<string> numbers = new List<string>();
-            numbers.AddRange(FindPhoneNumber(content));
+            processedLinks = new List<string>();
 
-            //Find any links and continue searching
-            var links = GetOtherLinks(content, baseUrl);
-            foreach (var l in links)
-            {
-                content = await GetContent(l.ToString());
-                numbers.AddRange(FindPhoneNumber(content));
-            }
+            numbers.AddRange(await GetContentAndProcess(link, baseUrl));
 
-            //Console.WriteLine(content);
             foreach (var n in numbers)
             {
                 Console.WriteLine(n.ToString());
@@ -34,7 +26,30 @@ namespace CoderByteTest
             
         }
 
-        private static List<string> FindPhoneNumber(string content)
+        private static async Task<List<string>> GetContentAndProcess(string link, string baseUrl)
+        {
+            List<string> retval = new List<string>();
+            var content = await GetContent(link);
+            retval.AddRange(FindPhoneNumber(content));
+            var links = GetOtherLinks(content, baseUrl);
+            var tasks = new List<Task<List<string>>>();
+            foreach (var l in links)
+            {
+                if (!processedLinks.Contains(l))
+                {
+                    processedLinks.Add(link);
+                    retval.AddRange(await GetContentAndProcess(l, baseUrl));
+                }
+                    //tasks.Add(GetContentAndProcess(l, baseUrl));
+            }
+            //foreach (var task in await Task.WhenAll(tasks))
+            //{
+            //    retval.AddRange(task);
+            //}
+            return retval;
+        }
+
+            private static List<string> FindPhoneNumber(string content)
         {
             List<string> retval = new List<string>();
 
